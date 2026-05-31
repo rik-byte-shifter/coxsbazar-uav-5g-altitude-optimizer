@@ -28,7 +28,7 @@ bgd_pop_*.tif
 *.fdb_latexmk
 *.fls
 
-# PDFs (build from project_report.tex)
+# Local PDFs
 *.pdf
 
 # Repomix / local tooling

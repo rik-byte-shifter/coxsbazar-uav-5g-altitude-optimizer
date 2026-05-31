@@ -4,12 +4,14 @@
 
 **Population-weighted optimal UAV broadcast altitude for 5G coverage in coastal Bangladesh**
 
+**Author: Ranesh Das Rik**
+
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![3GPP](https://img.shields.io/badge/Channel-3GPP%20TR%2036.777%20Aerial%20UMa-0066cc)](https://www.3gpp.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/Tests-pytest-8A2BE2)](tests/)
 
-[Quick start](#quick-start) · [Results](#key-results) · [Reproduce](#full-reproduction) · [Report](#latex-report) · [Citation](#citation)
+[Quick start](#quick-start) · [Results](#key-results) · [Reproduce](#full-reproduction) · [Citation](#citation)
 
 </div>
 
@@ -56,14 +58,12 @@ flowchart LR
     FIG[PNG figures]
     CSV[Sensitivity CSVs]
     HTML[Plotly HTML]
-    TEX[LaTeX report]
   end
   WP --> COV
   P --> PL --> SINR --> COV --> OPT
   OPT --> FIG
   OPT --> CSV
   OPT --> HTML
-  FIG --> TEX
 ```
 
 ---
@@ -135,22 +135,11 @@ This generates:
 | `outputs/live_*.html` | Interactive Plotly visualizations |
 | `outputs/results_summary.txt` | Text summary |
 
-PNG files are also copied to the project root for LaTeX.
-
 ### 4. Tests
 
 ```bash
 python -m pytest tests/ -v
 ```
-
-### 5. LaTeX report
-
-```bash
-pdflatex project_report.tex
-pdflatex project_report.tex
-```
-
-Source: [`project_report.tex`](project_report.tex) — 18-page report with all tables and figures.
 
 ---
 
@@ -172,7 +161,6 @@ coxsbazar-uav-5g-altitude-optimizer/
 ├── data/
 │   ├── worldpop_coxsbazar.tif   # Bundled clipped raster
 │   └── README.md
-├── project_report.tex    # LaTeX report source
 ├── requirements.txt
 └── LICENSE
 ```
@@ -199,7 +187,7 @@ If you use this code in academic work, please cite the repository:
 
 ```bibtex
 @software{coxsbazar_uav_5g_2026,
-  author       = {rik-byte-shifter},
+  author       = {Ranesh Das Rik},
   title        = {Cox's Bazar UAV 5G Altitude Optimizer},
   year         = {2026},
   publisher    = {GitHub},
@@ -213,12 +201,14 @@ If you use this code in academic work, please cite the repository:
 
 ## License
 
-This project is released under the [MIT License](LICENSE).
+Copyright © 2026 **Ranesh Das Rik**. Released under the [MIT License](LICENSE).
 
 ---
 
 <div align="center">
 
 **Cox's Bazar, Bangladesh** · Coastal UAV 5G feasibility study · 3GPP aerial UMa
+
+**Ranesh Das Rik**
 
 </div>

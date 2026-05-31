@@ -720,7 +720,7 @@ def generate_ground_map(res_sub6: dict, frame_step: int = 8) -> str:
 
 
 def export_static_figures_for_report(res_sub6: dict, res_mm: dict) -> list[str]:
-    """Matplotlib PNG snapshots of live HTML views (for LaTeX report)."""
+    """Matplotlib PNG snapshots of live HTML views (preview figures)."""
     import matplotlib
 
     matplotlib.use("Agg")

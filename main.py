@@ -3,6 +3,8 @@ MAIN RUNNER
 ===========
 UAV Altitude Optimization for 5G Coverage in Coastal Terrain
 
+Author: Ranesh Das Rik
+
 Usage:
     python main.py
 
@@ -20,7 +22,6 @@ Outputs (saved in ./outputs/):
     results_summary.txt
 """
 
-import shutil
 import sys
 import time
 from pathlib import Path
@@ -267,11 +268,6 @@ SINR threshold (data)   : {params_sub6.SINR_threshold_data_dB} dB
     print(summary)
     with open(OUTPUT_DIR / "results_summary.txt", "w", encoding="utf-8") as f:
         f.write(summary)
-
-    project_root = Path(__file__).parent
-    for png in OUTPUT_DIR.glob("*.png"):
-        shutil.copy2(png, project_root / png.name)
-    print(f"  Copied {len(list(OUTPUT_DIR.glob('*.png')))} PNG(s) to project root for LaTeX.")
 
     print("\n  All done! Check the 'outputs/' folder for figures.")
 

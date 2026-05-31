@@ -3,6 +3,8 @@ UAV Altitude Optimization for 5G Coverage in Coastal Terrain
 =============================================================
 Based on 3GPP TR 36.777 aerial UMa channel model.
 Target: Cox's Bazar coastal terrain, Bangladesh.
+
+Author: Ranesh Das Rik
 """
 
 import numpy as np
