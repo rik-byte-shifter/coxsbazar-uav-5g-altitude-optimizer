@@ -141,7 +141,7 @@ def plot_fig2_coverage_curve(
 
     ax1.set_ylabel("Coverage (%)")
     ax1.set_title(
-        f"UAV Altitude Optimization - Cox's Bazar\n"
+        f"Population-Weighted UAV-BS Altitude Optimization (Coastal Bangladesh)\n"
         f"3GPP TR 36.777 | fc = {params.fc_sub6 / 1e9:.1f} GHz | "
         f"P_tx = {params.P_tx_dBm} dBm | BW = {params.BW_MHz} MHz"
     )

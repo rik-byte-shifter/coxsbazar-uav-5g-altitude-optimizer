@@ -1,8 +1,8 @@
 <div align="center">
 
-# Cox's Bazar UAV 5G Altitude Optimizer
+# Population-Weighted Altitude Optimization for Sub-6 and mmWave UAV-BS Coverage in Coastal Bangladesh: A Dual-Threshold Sensitivity Study
 
-**Population-weighted optimal UAV broadcast altitude for 5G coverage in coastal Bangladesh**
+**Cox's Bazar AOI · 3GPP TR 36.777 aerial UMa · WorldPop-weighted coverage**
 
 **Author: Ranesh Das Rik**
 
@@ -188,7 +188,7 @@ If you use this code in academic work, please cite the repository:
 ```bibtex
 @software{coxsbazar_uav_5g_2026,
   author       = {Ranesh Das Rik},
-  title        = {Cox's Bazar UAV 5G Altitude Optimizer},
+  title        = {Population-Weighted Altitude Optimization for Sub-6 and mmWave UAV-BS Coverage in Coastal Bangladesh: A Dual-Threshold Sensitivity Study},
   year         = {2026},
   publisher    = {GitHub},
   url          = {https://github.com/rik-byte-shifter/coxsbazar-uav-5g-altitude-optimizer}
@@ -207,7 +207,7 @@ Copyright © 2026 **Ranesh Das Rik**. Released under the [MIT License](LICENSE).
 
 <div align="center">
 
-**Cox's Bazar, Bangladesh** · Coastal UAV 5G feasibility study · 3GPP aerial UMa
+**Cox's Bazar, Bangladesh** · Dual-threshold Sub-6 / mmWave UAV-BS study · 3GPP aerial UMa
 
 **Ranesh Das Rik**
 

@@ -44,7 +44,7 @@ def _banner(phase: str, detail: str, step: int, total: int) -> list:
     return [
         dict(
             text=(
-                f"<b>UAV 5G Full Project Simulation</b>   "
+                f"<b>Dual-Threshold UAV-BS Coverage Study (Coastal Bangladesh)</b>   "
                 f"[{step}/{total}] <br>"
                 f"<b style='color:#1a5276'>{phase}</b><br>{detail}"
             ),
@@ -515,8 +515,8 @@ def generate_full_project_simulation(
     fig.update_layout(
         title=dict(
             text=(
-                "<b>Live Full Project Simulation</b><br>"
-                "<sup>UAV 5G altitude optimization — Cox's Bazar | Play entire pipeline</sup>"
+                "<b>Population-Weighted Sub-6 / mmWave UAV-BS Coverage</b><br>"
+                "<sup>Dual-threshold sensitivity study — Cox's Bazar | Play entire pipeline</sup>"
             ),
             x=0.5,
             xanchor="center",

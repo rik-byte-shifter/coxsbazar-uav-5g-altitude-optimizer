@@ -130,7 +130,11 @@ def run_pipeline():
     Returns (res_sub6, res_mm, params_sub6, params_mm, ok_sub6, ok_mm).
     """
     print("\n" + "=" * 60)
-    print("  UAV 5G Altitude Optimizer - Cox's Bazar, Bangladesh")
+    print(
+        "  Population-Weighted Altitude Optimization for Sub-6 and mmWave "
+        "UAV-BS Coverage in Coastal Bangladesh"
+    )
+    print("  A Dual-Threshold Sensitivity Study — Cox's Bazar AOI")
     print("  Standard: 3GPP TR 36.777 Aerial UMa")
     print("=" * 60)
 
