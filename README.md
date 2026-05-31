@@ -1,8 +1,8 @@
 <div align="center">
 
-# Population-Weighted Altitude Optimization for Sub-6 and mmWave UAV-BS Coverage in Coastal Bangladesh: A Dual-Threshold Sensitivity Study
+# Cox's Bazar UAV 5G Altitude Optimizer
 
-**Cox's Bazar AOI · 3GPP TR 36.777 aerial UMa · WorldPop-weighted coverage**
+**Population-Weighted Altitude Optimization for Sub-6 and mmWave UAV-BS Coverage in Coastal Bangladesh: A Dual-Threshold Sensitivity Study**
 
 **Author: Ranesh Das Rik**
 
