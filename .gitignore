@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+.env
+
+# Generated outputs (reproduce with: python main.py)
+outputs/
+
+# Root / generated figures
+*.png
+
+# Large national WorldPop raster (download separately; use scripts/clip_worldpop.py)
+bgd_pop_*.tif
+*.tif
+!data/worldpop_coxsbazar.tif
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.lof
+*.out
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+
+# PDFs (build from project_report.tex)
+*.pdf
+
+# Repomix / local tooling
+repomix-output.xml
+repomix.config.json
+.repomixignore
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Stale report variants
+project_report_updated.*
+result_report.*

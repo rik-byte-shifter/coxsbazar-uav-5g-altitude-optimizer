@@ -1,0 +1,486 @@
+%=============================================================================
+% UAV 5G Altitude Optimization — Cox's Bazar Coastal Terrain
+% Full project report — WorldPop constrained count (2026 projection, R2025A)
+% Compile: pdflatex project_report.tex  (run twice)
+%=============================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=2.0cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{enumitem}
+
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
+\graphicspath{{outputs/}}
+
+\title{\textbf{UAV Altitude Optimization for 5G Coverage}\\
+\large in Coastal Terrain (Cox's Bazar, Bangladesh)\\
+\large Full Project Report --- WorldPop 2025A Results}
+\author{UAV 5G Research Project}
+\date{Latest run: \texttt{python main.py} with WorldPop \\
+Source raster: \texttt{bgd\_pop\_2026\_CN\_100m\_R2025A\_v1.tif}\\
+(2026 constrained count projection, R2025A release)}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This report documents a complete simulation of a UAV-mounted 5G base station
+over Cox's Bazar, Bangladesh, using the 3GPP TR~36.777 aerial Urban Macro channel
+model. Population-weighted coverage is computed on a $40\times40$ ground grid
+($\pm 5$~km) with \textbf{WorldPop constrained population count} (2026 projection,
+R2025A release; 100~m, clipped from the uploaded Bangladesh raster
+\texttt{bgd\_pop\_2026\_CN\_100m\_R2025A\_v1.tif}).
+Optimal altitudes $h^\ast$ are found for Sub-6~GHz (3.5~GHz) and mmWave (28~GHz),
+with sensitivity over transmit power and SINR threshold. All tables and figures
+reflect the latest full pipeline execution.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+%=============================================================================
+\section{Introduction and Motivation}
+%=============================================================================
+
+\subsection{Problem statement}
+A UAV base station must fly at altitude $h$ that balances:
+\begin{itemize}[noitemsep]
+  \item \textbf{Higher $h$}: more line-of-sight (LoS), wider footprint;
+  \item \textbf{Higher $h$}: longer path $\rightarrow$ weaker edge signals;
+  \item \textbf{Higher $h$}: more co-channel interference (simplified model).
+\end{itemize}
+Coverage versus altitude is typically non-monotonic with an interior optimum $h^\ast$.
+
+\subsection{Regulatory context (Bangladesh)}
+While current Civil Aviation Authority of Bangladesh (CAAB) rules restrict routine
+beyond-visual-line-of-sight (BVLOS) UAV operations, this study establishes
+\textbf{physical coverage limits} for future regulatory frameworks, tethered
+aerostat deployments, or cyclone and emergency special-authorization scenarios
+in coastal Bangladesh. Results should be read as a population-weighted
+upper-bound simulation rather than an operational flight plan.
+
+\subsection{Study area and population data}
+\textbf{Cox's Bazar, Bangladesh} ($21.43^\circ$N, $91.98^\circ$E), coastal flat terrain.
+Coverage is weighted by \textbf{where people live}:
+\begin{itemize}[noitemsep]
+  \item \textbf{Active dataset:} WorldPop constrained population count (2026 projection,
+        R2025A; 100~m), clipped to $91.93^\circ$--$92.03^\circ$E, $21.38^\circ$--$21.48^\circ$N
+        $\rightarrow$ \texttt{data/worldpop\_coxsbazar.tif}.
+  \item \textbf{Parent file:} \texttt{bgd\_pop\_2026\_CN\_100m\_R2025A\_v1.tif} (full Bangladesh).
+\end{itemize}
+
+\subsection{Software stack}
+\texttt{uav\_optimizer.py}, \texttt{population\_data.py}, \texttt{main.py},
+\texttt{visualizations.py}, \texttt{sensitivity.py}, \texttt{live\_viz.py},
+\texttt{scripts/clip\_worldpop.py}, \texttt{check\_worldpop.py}.
+
+%=============================================================================
+\section{System Model}
+%=============================================================================
+
+\subsection{Grid and RF defaults (Table~\ref{tab:params})}
+\begin{table}[H]
+\centering
+\caption{Simulation parameters (latest run).}
+\label{tab:params}
+\begin{tabular}{lll}
+\toprule
+Parameter & Value & Notes \\
+\midrule
+Sub-6 / mmWave & 3.5 / 28~GHz & \\
+$P_{\mathrm{tx}}$ & 27~dBm & \\
+Bandwidth & 20~MHz & \\
+$\gamma_{\mathrm{th}}$ & 0~dB & Control channel (PDCCH) \\
+$\gamma_{\mathrm{th,data}}$ & 3~dB & Data channel (PDSCH) minimum \\
+Soft $\beta$ & 1.5 & Optimization sigmoid \\
+$h$ sweep & 20--300~m, 250 steps & Endurance-capped ($h_{\max}=300$~m) \\
+Battery / hover & 500~Wh / 120~W & Endurance model \\
+Max flight time & 45~min & Safety margin \\
+Grid & $40\times40$, $\pm 5000$~m & \\
+\textbf{Population} & \textbf{WorldPop 2025A} & \texttt{worldpop\_coxsbazar.tif} \\
+Map centre & 21.43$^\circ$N, 91.98$^\circ$E & \\
+Channel standard & 3GPP TR~36.777 aerial UMa & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Coverage and optimization}
+Control coverage $C_{\mathrm{ctrl}}(h)$ and data coverage $C_{\mathrm{data}}(h)$ use
+$\gamma_{\mathrm{th}}=0$~dB and $\gamma_{\mathrm{th,data}}=3$~dB respectively.
+Soft coverage $C_{\mathrm{soft}}(h)$ (sigmoid) is population-weighted over the grid.
+Interference follows an altitude-driven aerial model (TR~36.777 Sec.~5.2.2) with a
+constant neighbor-cell margin; altitude is capped by a simplified battery/endurance model.
+The optimizer maximizes $C_{\mathrm{soft}}(h)$ with \texttt{scipy.optimize.minimize\_scalar},
+validated against the altitude sweep.
+
+%=============================================================================
+\section{WorldPop Data Pipeline}
+%=============================================================================
+
+\begin{enumerate}
+  \item User raster: \texttt{bgd\_pop\_2026\_CN\_100m\_R2025A\_v1.tif} (EPSG:4326, Bangladesh).
+  \item \texttt{python scripts/clip\_worldpop.py} $\rightarrow$
+        \texttt{data/worldpop\_coxsbazar.tif} (120$\times$120 cells, nodata cleaned).
+  \item \texttt{population\_data.load\_population\_weights()} samples raster at each grid
+        lon/lat; weights normalized to $[0,1]$.
+  \item Verification: \texttt{python check\_worldpop.py} $\rightarrow$
+        \texttt{Source: worldpop:worldpop\_coxsbazar.tif}.
+\end{enumerate}
+
+%=============================================================================
+\section{Main Results (Latest Full Run, WorldPop)}
+%=============================================================================
+
+\textbf{Population:} \texttt{worldpop:worldpop\_coxsbazar.tif} \quad
+\textbf{Run:} \texttt{python main.py} after WorldPop clip.
+
+\subsection{Sub-6 GHz (3.5 GHz)}
+\begin{table}[H]
+\centering
+\caption{Sub-6 GHz results (WorldPop weights).}
+\label{tab:sub6}
+\begin{tabular}{lr}
+\toprule
+Quantity & Value \\
+\midrule
+Optimal altitude $h^\ast$ & \textbf{221.3~m} \\
+Control coverage at $h^\ast$ & \textbf{73.37\%} \\
+Data coverage at $h^\ast$ & \textbf{55.28\%} \\
+Soft coverage at $h^\ast$ & 74.32\% \\
+Mean population-weighted SINR at $h^\ast$ & \textbf{5.07~dB} \\
+Objective & \texttt{soft\_coverage} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{mmWave (28 GHz)}
+\begin{table}[H]
+\centering
+\caption{mmWave results (WorldPop weights).}
+\label{tab:mmwave}
+\begin{tabular}{lr}
+\toprule
+Quantity & Value \\
+\midrule
+Optimal altitude $h^\ast$ & \textbf{120.2~m} \\
+Control coverage at $h^\ast$ & \textbf{4.35\%} \\
+Data coverage at $h^\ast$ & \textbf{3.14\%} \\
+Soft coverage at $h^\ast$ & 5.08\% \\
+Mean population-weighted SINR at $h^\ast$ & \textbf{$-12.60$~dB} \\
+Objective & \texttt{soft\_coverage} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Cross-frequency comparison}
+\begin{table}[H]
+\centering
+\caption{Sub-6 vs mmWave (WorldPop).}
+\label{tab:compare}
+\begin{tabular}{lcc}
+\toprule
+Metric & Sub-6 (3.5~GHz) & mmWave (28~GHz) \\
+\midrule
+$h^\ast$ [m] & 221.3 & 120.2 \\
+Control coverage [\%] & 73.37 & 4.35 \\
+Data coverage [\%] & 55.28 & 3.14 \\
+Soft coverage [\%] & 74.32 & 5.08 \\
+Mean SINR at $h^\ast$ [dB] & 5.07 & $-12.60$ \\
+$\Delta h^\ast$ [m] & \multicolumn{2}{c}{\textbf{$-101.1$} (mmWave lower)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Compared to the earlier \emph{synthetic} population model, WorldPop weighting
+concentrates demand in the clipped AOI. With altitude-driven interference and an
+endurance cap ($h_{\max}=300$~m), Sub-6 control coverage reaches \textbf{73.4\%} at
+$h^\ast = 221$~m.
+
+%=============================================================================
+\section{Sensitivity Analysis (Sub-6 GHz, WorldPop)}
+%=============================================================================
+
+\subsection{Control-channel sweep (Fig.~\ref{fig:sens})}
+Fig.~4 sweeps control $\gamma_{\mathrm{th}}$ and $P_{\mathrm{tx}}$; optimization
+maximizes control soft coverage.
+
+\begin{table}[H]
+\centering
+\caption{Control-channel sensitivity: $h^\ast$ and coverage (WorldPop weights).}
+\label{tab:sensitivity}
+\begin{tabular}{ccrrr}
+\toprule
+$P_{\mathrm{tx}}$ [dBm] & $\gamma_{\mathrm{th}}$ [dB] & $h^\ast$ [m] & Control [\%] & Soft [\%] \\
+\midrule
+25 & $-3$ & 236.2 & 81.63 & 82.00 \\
+25 & 0   & 186.6 & 61.38 & 61.28 \\
+25 & 3   & 140.5 & 45.54 & 46.00 \\
+27 & $-3$ & 257.5 & 97.46 & 94.98 \\
+27 & 0   & 222.0 & 73.37 & 74.31 \\
+27 & 3   & 168.9 & 55.56 & 55.74 \\
+30 & $-3$ & 246.8 & 99.50 & 99.52 \\
+30 & 0   & 257.5 & 97.46 & 94.98 \\
+30 & 3   & 222.0 & 73.37 & 74.31 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Default operating point: $P_{\mathrm{tx}}=27$~dBm, $\gamma_{\mathrm{th}}=0$~dB
+$\Rightarrow$ $h^\ast \approx 222$~m, $\approx 73\%$ control coverage.
+
+\subsection{Data-channel sweep (Fig.~\ref{fig:sensdata})}
+Fig.~5 sweeps data $\gamma_{\mathrm{th,data}}$ at fixed $P_{\mathrm{tx}}=27$~dBm;
+optimization maximizes data soft coverage.
+
+\begin{table}[H]
+\centering
+\caption{Data-channel sensitivity at $P_{\mathrm{tx}}=27$~dBm (WorldPop weights).}
+\label{tab:sensitivity_data}
+\begin{tabular}{crrrr}
+\toprule
+$\gamma_{\mathrm{th,data}}$ [dB] & $h^\ast$ [m] & Data [\%] & Control [\%] & Soft data [\%] \\
+\midrule
+0 & 222.0 & 73.37 & 73.37 & 74.31 \\
+3 & 168.9 & 55.56 & 73.37 & 55.74 \\
+6 & 122.6 & 41.73 & 64.09 & 41.52 \\
+9 & 122.4 & 24.31 & 64.09 & 26.17 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%=============================================================================
+\section{All Generated Figures (Latest WorldPop Run)}
+%=============================================================================
+
+Table~\ref{tab:allfigures} lists \textbf{every} figure file produced by
+\texttt{python main.py} (static PNG). Interactive HTML files are listed in
+Section~\ref{sec:html}; static preview PNGs of those visualizations are included
+as Figures~\ref{fig:live3d}--\ref{fig:livefull}.
+
+\begin{table}[H]
+\centering
+\caption{Complete inventory of generated figure files (\texttt{outputs/}).}
+\label{tab:allfigures}
+\small
+\begin{tabular}{llp{5.8cm}}
+\toprule
+\textbf{File} & \textbf{Fig.} & \textbf{Description} \\
+\midrule
+\texttt{fig1\_sinr\_surface\_3d.png} & \ref{fig:sinr3d} &
+  3D SINR vs $h$, $d$; Sub-6; ridge at $h^\ast$ \\
+\texttt{fig2\_coverage\_vs\_altitude.png} & \ref{fig:coverage} &
+  Control + data + soft coverage vs $h$; derivative panel \\
+\texttt{fig3\_frequency\_comparison.png} & \ref{fig:freq} &
+  Sub-6 vs mmWave coverage; $\Delta h^\ast$ \\
+\texttt{bonus\_population\_sinr\_maps.png} & \ref{fig:bonus} &
+  WorldPop weights + SINR map at $h^\ast$ \\
+\texttt{fig4\_sensitivity\_hstar.png} & \ref{fig:sens} &
+  Control $h^\ast$ heatmap vs $P_{\mathrm{tx}}$, $\gamma_{\mathrm{th}}$ \\
+\texttt{fig5\_sensitivity\_data\_hstar.png} & \ref{fig:sensdata} &
+  Data $h^\ast$ vs $\gamma_{\mathrm{th,data}}$ ($P_{\mathrm{tx}}=27$~dBm) \\
+\texttt{preview\_live\_3d\_optimizer.png} & \ref{fig:live3d} &
+  Static snapshot: live 3D $h$--$d$--SINR optimizer \\
+\texttt{preview\_live\_ground\_sinr.png} & \ref{fig:liveground} &
+  Static snapshot: ground SINR at $h^\ast$ \\
+\texttt{preview\_live\_full\_project.png} & \ref{fig:livefull} &
+  Static snapshot: WorldPop + both band coverage curves \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Publication figures (matplotlib)}
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=\textwidth]{fig1_sinr_surface_3d.png}
+\caption{Fig.~1 --- 3D SINR surface vs UAV altitude $h$ and ground distance $d$
+(Sub-6 GHz, 3GPP TR~36.777 aerial UMa). Gold ridge: optimal altitude
+$h^\ast = 221$~m. Orange plane: SINR threshold ($0$~dB). WorldPop-weighted
+simulation grid.}
+\label{fig:sinr3d}
+\end{figure}
+\clearpage
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=\textwidth]{fig2_coverage_vs_altitude.png}
+\caption{Fig.~2 --- Population-weighted coverage vs altitude (Sub-6 GHz).
+\textbf{Top:} control coverage ($\gamma_{\mathrm{th}}=0$~dB), data coverage
+($\gamma_{\mathrm{th,data}}=3$~dB), and soft coverage (optimization objective).
+\textbf{Bottom:} $\mathrm{d}C_{\mathrm{soft}}/\mathrm{d}h$; zero crossing near
+$h^\ast$. WorldPop 2025A weights.}
+\label{fig:coverage}
+\end{figure}
+\clearpage
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=\textwidth]{fig3_frequency_comparison.png}
+\caption{Fig.~3 --- Sub-6 GHz (3.5~GHz) vs mmWave (28~GHz) population-weighted
+coverage vs altitude. Annotated optima: $h^\ast_{\mathrm{sub6}} = 221$~m,
+$h^\ast_{\mathrm{mm}} = 120$~m, $\Delta h^\ast = 101.1$~m.}
+\label{fig:freq}
+\end{figure}
+\clearpage
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=\textwidth]{bonus_population_sinr_maps.png}
+\caption{Bonus figure --- \textbf{Left:} WorldPop 2025A population weights
+(clipped from \texttt{bgd\_pop\_2026\_CN\_100m\_R2025A\_v1.tif}).
+\textbf{Right:} Sub-6 GHz SINR [dB] at $h^\ast = 221$~m; dashed contour:
+coverage boundary ($\mathrm{SINR} = 0$~dB).}
+\label{fig:bonus}
+\end{figure}
+\clearpage
+
+\IfFileExists{fig4_sensitivity_hstar.png}{
+\begin{figure}[p]
+\centering
+\includegraphics[width=0.92\textwidth]{fig4_sensitivity_hstar.png}
+\caption{Fig.~4 --- Control-channel sensitivity: optimal altitude $h^\ast$ [m] vs
+transmit power $P_{\mathrm{tx}}$ and control SINR threshold $\gamma_{\mathrm{th}}$
+(Sub-6 GHz, WorldPop weights). Cell labels show $h^\ast$ in metres.}
+\label{fig:sens}
+\end{figure}
+}{
+\begin{figure}[p]
+\centering
+\fbox{\parbox{0.9\textwidth}{\centering Sensitivity analysis skipped. Run \texttt{python sensitivity.py} to generate.}}
+\caption{Sensitivity analysis not generated.}
+\end{figure}
+}
+\clearpage
+
+\IfFileExists{fig5_sensitivity_data_hstar.png}{
+\begin{figure}[p]
+\centering
+\includegraphics[width=0.92\textwidth]{fig5_sensitivity_data_hstar.png}
+\caption{Fig.~5 --- Data-channel sensitivity: $h^\ast$ [m] and data coverage at $h^\ast$
+vs $\gamma_{\mathrm{th,data}}$ at $P_{\mathrm{tx}}=27$~dBm (Sub-6 GHz, WorldPop).
+Optimization maximizes data soft coverage.}
+\label{fig:sensdata}
+\end{figure}
+}{
+\begin{figure}[p]
+\centering
+\fbox{\parbox{0.9\textwidth}{\centering Data sensitivity skipped. Run \texttt{python sensitivity.py} to generate.}}
+\caption{Data-channel sensitivity not generated.}
+\end{figure}
+}
+\clearpage
+
+\subsection{Live visualization static previews (PNG)}
+\paragraph{Note.} Interactive animations are in HTML (Section~\ref{sec:html});
+these PNGs are representative still frames for the written report.
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=\textwidth]{preview_live_3d_optimizer.png}
+\caption{Live 3D optimizer --- static preview of the $h$--$d$--SINR surface with
+optimal ridge (Sub-6 GHz). Corresponds to \texttt{live\_3d\_optimizer.html}.}
+\label{fig:live3d}
+\end{figure}
+\clearpage
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=\textwidth]{preview_live_ground_sinr.png}
+\caption{Live ground map --- static preview of population-weighted SINR over the
+Cox's Bazar grid at $h^\ast = 221$~m. Corresponds to
+\texttt{live\_ground\_sinr.html}.}
+\label{fig:liveground}
+\end{figure}
+\clearpage
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=\textwidth]{preview_live_full_project.png}
+\caption{Live full project --- static summary: WorldPop weights, Sub-6 coverage
+vs $h$, mmWave coverage vs $h$. Corresponds to \texttt{live\_full\_project.html}
+(9-phase animated playback in browser).}
+\label{fig:livefull}
+\end{figure}
+\clearpage
+
+\listoffigures
+\clearpage
+
+%=============================================================================
+\section{Other Outputs}
+%=============================================================================
+
+\subsection{Text and data}
+\begin{itemize}[noitemsep]
+  \item \texttt{outputs/results\_summary.txt}
+  \item \texttt{outputs/sensitivity\_results.csv}
+  \item \texttt{outputs/sensitivity\_data\_results.csv}
+  \item \texttt{data/worldpop\_coxsbazar.tif} (clipped WorldPop)
+\end{itemize}
+
+\subsection{Live interactive HTML (supplementary)}
+\label{sec:html}
+\begin{table}[H]
+\centering
+\caption{Interactive visualizations (open in web browser; not embedded as vector graphics).}
+\label{tab:live}
+\begin{tabular}{ll}
+\toprule
+File & Description \\
+\midrule
+\texttt{live\_full\_project.html} & Full 9-phase simulation player \\
+\texttt{live\_3d\_optimizer.html} & Sub-6 $h$--$d$--SINR optimizer \\
+\texttt{live\_ground\_sinr.html} & Ground SINR vs altitude \\
+\texttt{live\_sinr\_optimizer.html} & Alias of full project player \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%=============================================================================
+\section{Reproduction}
+%=============================================================================
+
+\begin{lstlisting}[basicstyle=\ttfamily\small]
+pip install -r requirements.txt
+# Place bgd_pop_2026_CN_100m_R2025A_v1.tif in project root
+python scripts/clip_worldpop.py
+python check_worldpop.py
+python main.py
+pdflatex project_report.tex
+pdflatex project_report.tex
+\end{lstlisting}
+
+%=============================================================================
+\section{Conclusions}
+%=============================================================================
+
+\begin{enumerate}
+  \item With \textbf{WorldPop 2025A} weights, Sub-6 $h^\ast = 221$~m delivers
+        \textbf{73.4\%} control coverage and \textbf{55.3\%} data coverage at 3.5~GHz
+        ($P_{\mathrm{tx}}=27$~dBm, control $\gamma_{\mathrm{th}}=0$~dB, data $3$~dB),
+        with $h_{\max}=300$~m enforced by the battery/endurance model.
+  \item mmWave optimum is \textbf{120~m} ($\Delta h^\ast = -101$~m) with only
+        \textbf{4.4\%} control coverage---strong band dependence for UAV placement.
+  \item Altitude-driven interference (not user-distance-dependent) and endurance
+        constraints produce physically consistent SINR and feasible altitude bounds.
+  \item Dual-threshold sensitivity: control $\gamma_{\mathrm{th}}$ sweep (Fig.~4) and
+        data $\gamma_{\mathrm{th,data}}$ sweep (Fig.~5) show $h^\ast$ falling as
+        thresholds tighten; at 27~dBm / 0~dB control, $h^\ast \approx 222$~m.
+\end{enumerate}
+
+\section*{References}
+\begin{itemize}[noitemsep]
+  \item 3GPP TR 36.777 V15.0.0 --- Enhanced LTE support for aerial vehicles.
+  \item 3GPP TR 38.901 --- UMa channel models.
+  \item WorldPop (2025A): \texttt{bgd\_pop\_2026\_CN\_100m\_R2025A\_v1.tif}.
+\end{itemize}
+
+\end{document}
